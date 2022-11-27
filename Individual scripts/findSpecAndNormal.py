@@ -63,6 +63,9 @@ def main(SpecularSuffix,NormalSuffix,AOSuffix,mipmaps,workspace):
     #Run/Check specular
     combinedlist = '\t'.join(listoffiles)
 
+    if len(cmds.ls(sl=True)) == 0:
+        cmds.warning("Zero objects in selection")
+        return
     #Grab selection nodetype
     nodetype = cmds.objectType(cmds.ls(sl=True,tl=1))
 
@@ -95,7 +98,7 @@ def main(SpecularSuffix,NormalSuffix,AOSuffix,mipmaps,workspace):
         matfilename = matfile.split("/")[-1]
         matfilename = matfilename.split(".")[0]
 
-        if cmds.attributeQuery(mat+".reflectivity",ex=True):
+        if cmds.attributeQuery("reflectivity",node=mat,ex=True):
             if matfilename+SpecularSuffix+".png" in combinedlist:
 
                 temp = check_containing(matfilename+SpecularSuffix+".png",listoffiles)
@@ -211,8 +214,12 @@ def mayaWindow():
 
 
 def run():
-    main(str(cmds.textField("Spec",q=True,tx=True)),str(cmds.textField("Normal",q=True,tx=True)),str(cmds.textField("AO",q=True,tx=True)),bool(cmds.checkBox("Mipmap",q=True,v=True)),str(cmds.textField("MaterialFolder", q=True, tx=True)))
-    deleteIfOpen()
+    if cmds.textField("MaterialFolder", q=True, tx=True) == "":
+        cmds.error("No path given to work with.")
+        return
+    else:
+        main(str(cmds.textField("Spec",q=True,tx=True)),str(cmds.textField("Normal",q=True,tx=True)),str(cmds.textField("AO",q=True,tx=True)),bool(cmds.checkBox("Mipmap",q=True,v=True)),str(cmds.textField("MaterialFolder", q=True, tx=True)))
+        deleteIfOpen()
 
 #Run if ran directly
 if __name__=="__main__":  
