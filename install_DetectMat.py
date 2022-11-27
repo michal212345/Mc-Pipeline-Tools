@@ -55,6 +55,17 @@ def main(SpecularSuffix,NormalSuffix,AOSuffix,mipmaps,workspace):
             #Super unconventional way of using confirmdialog and i love it <3
             return match[int(cmds.confirmDialog(title="Please choose a path",m="check log for more detail",b=numberoffiles,db="0"))]
 
+    def setSecondUv(mat,filenode):
+        uvChooser = cmds.shadingNode("uvChooser",asUtility=True)
+        placeTexture = cmds.listConnections(filenode+".mirrorU",c=True)[1]
+        cmds.connectAttr(uvChooser+".outUv",placeTexture+".uvCoord")
+        shadingEngine = cmds.listConnections(mat+".outColor",c=True)[1]
+        mesh = cmds.listConnections(shadingEngine+".dagSetMembers",c=True)[1]
+        try:
+            cmds.connectAttr(mesh+"uvSet[1].uvSetName",uvChooser+"uvSets[0]")
+        except:
+            None
+
     listoffiles=[]
 
     # Get workspace, Extract all paths/files inside sourceimages and combine them into list.
@@ -66,6 +77,9 @@ def main(SpecularSuffix,NormalSuffix,AOSuffix,mipmaps,workspace):
     #Run/Check specular
     combinedlist = '\t'.join(listoffiles)
 
+    if len(cmds.ls(sl=True)) == 0:
+        cmds.warning("Zero objects in selection")
+        return
     #Grab selection nodetype
     nodetype = cmds.objectType(cmds.ls(sl=True,tl=1))
 
@@ -98,7 +112,7 @@ def main(SpecularSuffix,NormalSuffix,AOSuffix,mipmaps,workspace):
         matfilename = matfile.split("/")[-1]
         matfilename = matfilename.split(".")[0]
 
-        if cmds.attributeQuery(mat+".reflectivity",ex=True):
+        if cmds.attributeQuery("reflectivity",node=mat,ex=True):
             if matfilename+SpecularSuffix+".png" in combinedlist:
 
                 temp = check_containing(matfilename+SpecularSuffix+".png",listoffiles)
@@ -132,6 +146,8 @@ def main(SpecularSuffix,NormalSuffix,AOSuffix,mipmaps,workspace):
             cmds.setAttr(filenode+".fileTextureName",str(temp),type="string")
             cmds.setAttr(filenode+".colorSpace","Raw",type="string")
             
+            setSecondUv(mat,filenode)
+
             #if connection exists... skip delete created files
             #I could probably re write the script to do it first but cba :joy:
             try:
@@ -149,6 +165,8 @@ def main(SpecularSuffix,NormalSuffix,AOSuffix,mipmaps,workspace):
             
             #Setup and adjut the _Normals filenode.
             cmds.setAttr(filenode+".fileTextureName",str(temp),type="string")
+            
+            setSecondUv(mat,filenode)
             
             try:
                 cmds.connectAttr(filenode+".outColor",mat+".ambientColor")
@@ -214,8 +232,12 @@ def mayaWindow():
 
 
 def run():
-    main(str(cmds.textField("Spec",q=True,tx=True)),str(cmds.textField("Normal",q=True,tx=True)),str(cmds.textField("AO",q=True,tx=True)),bool(cmds.checkBox("Mipmap",q=True,v=True)),str(cmds.textField("MaterialFolder", q=True, tx=True)))
-    deleteIfOpen()
+    if cmds.textField("MaterialFolder", q=True, tx=True) == "":
+        cmds.error("No path given to work with.")
+        return
+    else:
+        main(str(cmds.textField("Spec",q=True,tx=True)),str(cmds.textField("Normal",q=True,tx=True)),str(cmds.textField("AO",q=True,tx=True)),bool(cmds.checkBox("Mipmap",q=True,v=True)),str(cmds.textField("MaterialFolder", q=True, tx=True)))
+        deleteIfOpen()
 
 #Run if ran directly
 if __name__=="__main__":  
