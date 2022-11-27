@@ -25,6 +25,7 @@ from PySide2.QtGui import *
 
 if cmds.about(version=True) <= "2022":
     BROSEIMAGE = "browseFolder.png"
+    cmds.confirmDialog(title='Version warning', icon="information" , message="There are a few issues with this script running in Maya 2022, the script will run but with errors like unintended behaviour. For example buttons breaking, please be careful", button=['Ok'], defaultButton='Ok')
 else:
     BROSEIMAGE = "folder-open.png"
 
