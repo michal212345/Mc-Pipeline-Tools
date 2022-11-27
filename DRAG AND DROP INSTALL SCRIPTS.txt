@@ -1,0 +1,1 @@
+Just drag and drop individual scripts into maya, they will automatically install what is required and put a button in your CURRENT shelf.
