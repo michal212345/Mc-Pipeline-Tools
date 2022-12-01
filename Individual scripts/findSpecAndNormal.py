@@ -192,7 +192,7 @@ def deleteIfOpen():
 def mayaWindow():
     ## Ui code...
     #Let user define the suffix of Spec and normal
-    cmds.window('Spec_Normal', title="Test", width=200, height=200, maximizeButton=False, resizeToFitChildren=True)
+    cmds.window('Spec_Normal', title="Find material textures", width=200, height=200, maximizeButton=False, resizeToFitChildren=True)
     cmds.columnLayout(adjustableColumn=True)
     
     cmds.rowLayout(numberOfColumns=2, adjustableColumn2=2, columnWidth2=[120, 50],columnAlign2=['right', 'left'], columnAttach2=['right', 'left'])
@@ -229,7 +229,7 @@ def mayaWindow():
 
 
 def run():
-    if cmds.textField("MaterialFolder", q=True, tx=True) == "":
+    if str(cmds.textField("MaterialFolder", q=True, tx=True)) == "":
         cmds.error("No path given to work with.")
         return
     else:
