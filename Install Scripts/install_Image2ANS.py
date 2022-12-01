@@ -382,7 +382,7 @@ def mayaWindow():
     cmds.button(l="Start",c="Start_ANS()")
     cmds.setParent('..')
     cmds.setParent('..')
-    cmds.showWindow('Spec_Normal')
+    cmds.showWindow('Image2ans')
 
 def Start_ANS():
     def remove_Filename(path:str) -> str:
@@ -418,7 +418,7 @@ def Start_ANS():
     
     # Check if core is in script folder.
     try:
-        import Image2ANS_Cuda as ANS
+        import Image2ANS as ANS
     except:
         cmds.confirmDialog(t="Warning",m="The script has not detected Image2ANS!" ,icn="critical" ,button="Ok")
         return
