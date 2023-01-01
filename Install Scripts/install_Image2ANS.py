@@ -7,7 +7,7 @@ from matplotlib import pyplot
 from PIL import Image, ImageOps,ImageEnhance
 import os
 
-def memoize(func):
+def memorize(func):
     cache = {}    
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -94,7 +94,7 @@ def compute_normal_map(gradient_x:np.ndarray, gradient_y:np.ndarray, intensity=1
 
     return normal_map
 
-#@memoize
+@memorize
 def normalized(a) -> float: 
     factor = 1.0/math.sqrt(np.sum(a*a)) # normalize
     return a*factor
@@ -239,6 +239,7 @@ def Convert(input_file, smoothness = 5, intensity = 5, dAO = True, doS = True, d
         os.remove(temp_file)
         
     print("Done: ", input_file)
+
 """
 
 buttonscript = r'''
