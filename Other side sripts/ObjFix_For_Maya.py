@@ -1,6 +1,21 @@
 import maya.cmds as cmds
 import maya.mel as mel
+import functools
 
+def memorize(func):
+    cache = {}    
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        key = str(args) + str(kwargs)
+        
+        if key not in cache:
+            cache[key] = func(*args, **kwargs)
+        
+        return cache[key]
+
+    return wrapper
+
+@memorize
 def convertname(name:str) -> str:
     convertT = {58:45}
     return str(name.translate(convertT))
