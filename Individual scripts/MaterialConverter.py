@@ -125,7 +125,7 @@ def getSelection(Mat:str) -> list:
     nodetype = cmds.objectType(cmds.ls(sl=True,tl=1))
 
     #Check node type and return Material
-    if not nodetype == Mat:
+    if not Mat == nodetype:
         if nodetype == "mesh" or nodetype == "transform":
             theNodes = cmds.ls(sl = True, dag = True, s = True)
             shadeEng = cmds.listConnections(theNodes , type = "shadingEngine")
@@ -280,7 +280,12 @@ def connectSpecial(mat,NewMat,To):
         
 
 def basicConvert(mat,To):
-    fileNode = cmds.listConnections(mat+".color",d=True)[0]
+
+    try:
+        fileNode = cmds.listConnections(mat+".color",d=True)[0]
+    except:
+        fileNode = cmds.listConnections(mat+".color",d=True)
+
     NewMat = createShader(MATERIALCOMMANDS.get(To))
 
     cmds.delete(cmds.listConnections(NewMat+".outColor",d=True)[0])
@@ -302,7 +307,11 @@ def basicConvert(mat,To):
 
 def proxyConvert(mat,To):
 
-    fileNode = cmds.listConnections(mat+".color",d=True)[0]
+    try:
+        fileNode = cmds.listConnections(mat+".color",d=True)[0]
+    except:
+        fileNode = cmds.listConnections(mat+".color",d=True)
+
     NewMat = createShader(MATERIALCOMMANDS.get(To))
 
     cmds.setAttr(cmds.listConnections(NewMat+".outColor",d=True)[0] + ".ihi", 0)
