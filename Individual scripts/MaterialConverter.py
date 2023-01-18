@@ -181,31 +181,58 @@ def convFromYtoX(Material,MatX):
     """
     cmds.nodeCast(Material,MatX,disconnectUnmatchedAttrs=True,f=True)
 
-def connectDiffuse(fileNode,Material):
+def connectDiffuse(fileNode,Material,oldMat):
     """
     Connect diffuse/color to the new material.
+    If there's no connection getAttr from oldMat it and setAttr it to the new Mat
     """
-    cmds.setAttr(fileNode+".filterType",0)
-    cmds.connectAttr(fileNode+".outColor",str(Material)+MATERIALDIFFUSE.get(cmds.nodeType(Material)))
+    if hasConnection(Material,str(MATERIALDIFFUSE.get(Material))):
+        if cmds.checkBox("disableMipMap",q=True,v=True) == True:
+            cmds.setAttr(fileNode+".filterType",0)
+        cmds.connectAttr(fileNode+".outColor",str(Material)+MATERIALDIFFUSE.get(cmds.nodeType(Material)))
+    else:
+        try:
+            colorList = list(cmds.getAttr(oldMat+".color")[0])
+            cmds.setAttr(Material+MATERIALDIFFUSE.get(cmds.nodeType(Material)),colorList[0],colorList[1],colorList[2])
+        except:
+            print("Failed to transfer Diffuse/Color attribute to new Material.")           
 
-def connectAlpha(fileNode,Material):
+def connectAlpha(fileNode,Material,oldMat):
     """
     Attempt to connect single channel of alpha in texture to the new to the new material as multichannel: Alpha to Alpha(R,G,B)
     Error handle to try and connect alpha as a single channel: Alpha to Alpha
     """
-    try:
-        cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material))+"R")
-        cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material))+"G")
-        cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material))+"B")
-    except Exception as f:
-        print(f"Failed to connect alpha falling back to single connection, Error: {f}")
-        cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material)))
+    def connectAttr(*args):
+        """
+        No error printing connectAttr
+        """
+        try:
+            cmds.connectAttr(args)
+        except:
+            None
+    if hasConnection(Material,str(MATERIALALPHA.get(Material))):
+        try:
+            cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material))+"R")
+            cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material))+"G")
+            cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material))+"B")
+        except Exception as f:
+            print(f"Failed to connect alpha falling back to single connection, Error: {f}")
+            connectAttr(fileNode+".outAlpha",Material+MATERIALALPHA.get(cmds.nodeType(Material)))
+    else:
+        try:
+            colorList = list(cmds.getAttr(oldMat+".transparency")[0])
+            cmds.setAttr(Material+MATERIALALPHA.get(cmds.nodeType(Material)),colorList[0],colorList[1],colorList[2])        
+        except:
+            print("Failed to transfer Alpha attribute to new Material.")
 
 def disableMipMaps(fileNode,NewMat):
     """
     Attempt to disable mipmap of the filenode.
     """
-    cmds.setAttr(fileNode+FILEMIPMAP.get(cmds.nodeType(NewMat)),0)
+    try:
+        cmds.setAttr(fileNode+FILEMIPMAP.get(cmds.nodeType(NewMat)),0)
+    except:
+        print("No filenode to mipmap! SKipping.")
 
 def connectSpecial(mat,NewMat,To):
     """
@@ -290,10 +317,10 @@ def basicConvert(mat,To):
 
     cmds.delete(cmds.listConnections(NewMat+".outColor",d=True)[0])
     convFromYtoX(mat,NewMat)
-    connectDiffuse(fileNode,NewMat)
+    connectDiffuse(fileNode,NewMat,mat)
     
     if cmds.checkBox("enableAlpha",q=True,v=True) == True:
-        connectAlpha(fileNode,NewMat)
+        connectAlpha(fileNode,NewMat,mat)
     if cmds.checkBox("disableMipMap",q=True,v=True) == True:
         disableMipMaps(fileNode,NewMat)
     if cmds.checkBox("EnableExtra",q=True,v=True) == True:
@@ -318,9 +345,9 @@ def proxyConvert(mat,To):
     shadingE = cmds.listConnections(mat+".outColor",d=True)[0]
     cmds.connectAttr(NewMat+".outColor",shadingE+SHADINGNODE.get(cmds.nodeType(NewMat)))
 
-    connectDiffuse(fileNode,NewMat)
+    connectDiffuse(fileNode,NewMat,mat)
     if cmds.checkBox("enableAlpha",q=True,v=True) == True:
-        connectAlpha(fileNode,NewMat)
+        connectAlpha(fileNode,NewMat,mat)
     if cmds.checkBox("disableMipMap",q=True,v=True) == True:
         disableMipMaps(fileNode,NewMat)
     if cmds.checkBox("EnableExtra",q=True,v=True) == True:
