@@ -155,15 +155,24 @@ def getSelection(Mat:str) -> list:
             temp.append(selection)
             return temp
 
-def hasConnection(Mat,socket) -> bool:
+def hasConnection(Mat:str,socket:str) -> bool:
     """
     Check if there's a connection in specified socket.
     Error handle to return false
     """
 
+    Connections = cmds.listConnections(Mat+socket,d=True)
     try:
-        return bool(cmds.listConnections(Mat+socket,d=True)[0])
-    except:
+        if not Connections == None:
+            Nr = len(Connections)
+            if Nr == 0:
+                return False
+            elif Nr >= 1:
+                return True
+        else:
+            return False
+    except Exception as f:
+        cmds.warning(f"hasConnection falsed with this error: {f}")
         return False
 
 def createShader(shaderType:str) -> str:
@@ -181,49 +190,27 @@ def convFromYtoX(Material,MatX):
     """
     cmds.nodeCast(Material,MatX,disconnectUnmatchedAttrs=True,f=True)
 
-def connectDiffuse(fileNode,Material,oldMat):
+def connectDiffuse(fileNode:str,Material:str):
     """
     Connect diffuse/color to the new material.
-    If there's no connection getAttr from oldMat it and setAttr it to the new Mat
     """
-    if hasConnection(Material,str(MATERIALDIFFUSE.get(Material))):
-        if cmds.checkBox("disableMipMap",q=True,v=True) == True:
-            cmds.setAttr(fileNode+".filterType",0)
-        cmds.connectAttr(fileNode+".outColor",str(Material)+MATERIALDIFFUSE.get(cmds.nodeType(Material)))
-    else:
-        try:
-            colorList = list(cmds.getAttr(oldMat+".color")[0])
-            cmds.setAttr(Material+MATERIALDIFFUSE.get(cmds.nodeType(Material)),colorList[0],colorList[1],colorList[2])
-        except:
-            print("Failed to transfer Diffuse/Color attribute to new Material.")           
+    cmds.connectAttr(fileNode+".outColor",str(Material)+MATERIALDIFFUSE.get(cmds.nodeType(Material)))
+    
+def setDiffuse(Material:str,Value:list[float]):
+    cmds.setAttr(str(Material)+MATERIALDIFFUSE.get(cmds.nodeType(Material)),Value[0],Value[1],Value[2])
 
-def connectAlpha(fileNode,Material,oldMat):
+def connectAlpha(fileNode,Material):
     """
     Attempt to connect single channel of alpha in texture to the new to the new material as multichannel: Alpha to Alpha(R,G,B)
     Error handle to try and connect alpha as a single channel: Alpha to Alpha
     """
-    def connectAttr(*args):
-        """
-        No error printing connectAttr
-        """
-        try:
-            cmds.connectAttr(args)
-        except:
-            None
-    if hasConnection(Material,str(MATERIALALPHA.get(Material))):
-        try:
-            cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material))+"R")
-            cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material))+"G")
-            cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material))+"B")
-        except Exception as f:
-            print(f"Failed to connect alpha falling back to single connection, Error: {f}")
-            connectAttr(fileNode+".outAlpha",Material+MATERIALALPHA.get(cmds.nodeType(Material)))
-    else:
-        try:
-            colorList = list(cmds.getAttr(oldMat+".transparency")[0])
-            cmds.setAttr(Material+MATERIALALPHA.get(cmds.nodeType(Material)),colorList[0],colorList[1],colorList[2])        
-        except:
-            print("Failed to transfer Alpha attribute to new Material.")
+    try:
+        cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material))+"R")
+        cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material))+"G")
+        cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material))+"B")
+    except Exception as f:
+        cmds.warning(f"Failed to connect alpha falling back to single connection, Error: {f}")
+        cmds.connectAttr(fileNode+".outAlpha",str(Material)+MATERIALALPHA.get(cmds.nodeType(Material)))
 
 def disableMipMaps(fileNode,NewMat):
     """
@@ -232,7 +219,7 @@ def disableMipMaps(fileNode,NewMat):
     try:
         cmds.setAttr(fileNode+FILEMIPMAP.get(cmds.nodeType(NewMat)),0)
     except:
-        print("No filenode to mipmap! SKipping.")
+        cmds.warning(f"Cant mipmap {fileNode}, Skipping.")
 
 def connectSpecial(mat,NewMat,To):
     """
@@ -252,12 +239,14 @@ def connectSpecial(mat,NewMat,To):
             cmds.connectAttr(filenode+".outColor",Displacement+".input")
             cmds.setAttr(Displacement+".scale",.4)
             cmds.connectAttr(Displacement+".out",NewMat+".bump_input")
-        
-        if hasConnection(mat,".reflectivity"):
-            filenode = cmds.listConnections(mat+".reflectivity",d=True)[0]
-            cmds.connectAttr(filenode+".outColorR",str(NewMat)+str(MATERIALSPECULAR.get(cmds.nodeType(NewMat))))
-            if cmds.checkBox("disableMipMap",q=True,v=True) == True:
-                disableMipMaps(filenode,NewMat)
+        try:
+            if hasConnection(mat,".reflectivity"):
+                filenode = cmds.listConnections(mat+".reflectivity",d=True)[0]
+                cmds.connectAttr(filenode+".outColorR",str(NewMat)+str(MATERIALSPECULAR.get(cmds.nodeType(NewMat))))
+                if cmds.checkBox("disableMipMap",q=True,v=True) == True:
+                    disableMipMaps(filenode,NewMat)
+        except:
+            cmds.warning("Material doesnt contain Reflectivity... Skipping.")
     
     elif To == "Arnold":
         if hasConnection(mat,".reflectivity"):
@@ -308,48 +297,65 @@ def connectSpecial(mat,NewMat,To):
 
 def basicConvert(mat,To):
 
-    try:
-        fileNode = cmds.listConnections(mat+".color",d=True)[0]
-    except:
-        fileNode = cmds.listConnections(mat+".color",d=True)
 
     NewMat = createShader(MATERIALCOMMANDS.get(To))
-
     cmds.delete(cmds.listConnections(NewMat+".outColor",d=True)[0])
     convFromYtoX(mat,NewMat)
-    connectDiffuse(fileNode,NewMat,mat)
-    
-    if cmds.checkBox("enableAlpha",q=True,v=True) == True:
-        connectAlpha(fileNode,NewMat,mat)
-    if cmds.checkBox("disableMipMap",q=True,v=True) == True:
-        disableMipMaps(fileNode,NewMat)
+
+    if hasConnection(mat,".color"):
+        try:
+            fileNode = cmds.listConnections(mat+".color",d=True)[0]
+        except:
+            fileNode = cmds.listConnections(mat+".color",d=True)
+        hasfileNode = True
+        connectDiffuse(fileNode,NewMat)
+    else:
+        hasfileNode = True
+        setDiffuse(NewMat,cmds.getAttr(mat+".color")[0])
+
+    if hasfileNode == True:
+        if cmds.checkBox("enableAlpha",q=True,v=True) == True:
+            connectAlpha(fileNode,NewMat)
+        if cmds.checkBox("disableMipMap",q=True,v=True) == True:
+            disableMipMaps(fileNode,NewMat)
+    else:
+        cmds.warning(f"No Filenode detected for {mat}, skipping Alpha and disable MipMaps")
+        
     if cmds.checkBox("EnableExtra",q=True,v=True) == True:
         if To in str(CUSTOMBEHAVIOUR):
             connectSpecial(mat,NewMat,To)
         else:
-            print("Render engine isnt in custom behaviour, Skipping.")
+            cmds.warning("Render engine isnt in custom behaviour, Skipping.")
     
     cmds.delete(mat)
     cmds.rename(NewMat,mat+"_"+To)
 
 def proxyConvert(mat,To):
-
-    try:
-        fileNode = cmds.listConnections(mat+".color",d=True)[0]
-    except:
-        fileNode = cmds.listConnections(mat+".color",d=True)
-
     NewMat = createShader(MATERIALCOMMANDS.get(To))
 
     cmds.setAttr(cmds.listConnections(NewMat+".outColor",d=True)[0] + ".ihi", 0)
     shadingE = cmds.listConnections(mat+".outColor",d=True)[0]
     cmds.connectAttr(NewMat+".outColor",shadingE+SHADINGNODE.get(cmds.nodeType(NewMat)))
 
-    connectDiffuse(fileNode,NewMat,mat)
-    if cmds.checkBox("enableAlpha",q=True,v=True) == True:
-        connectAlpha(fileNode,NewMat,mat)
-    if cmds.checkBox("disableMipMap",q=True,v=True) == True:
-        disableMipMaps(fileNode,NewMat)
+    if hasConnection(mat,".color"):
+        try:
+            fileNode = cmds.listConnections(mat+".color",d=True)[0]
+        except:
+            fileNode = cmds.listConnections(mat+".color",d=True)
+        hasfileNode = True
+        connectDiffuse(fileNode,NewMat)
+    else:
+        hasfileNode = False
+        setDiffuse(NewMat,cmds.getAttr(mat+".color")[0])
+    
+    if hasfileNode == True:
+        if cmds.checkBox("enableAlpha",q=True,v=True) == True:
+            connectAlpha(fileNode,NewMat)
+        if cmds.checkBox("disableMipMap",q=True,v=True) == True:
+            disableMipMaps(fileNode,NewMat)
+    else:
+        cmds.warning(f"No Filenode detected for {mat}, skipping Alpha and disable MipMaps")
+        
     if cmds.checkBox("EnableExtra",q=True,v=True) == True:
         if To in str(CUSTOMBEHAVIOUR):
             connectSpecial(mat,NewMat,To)
