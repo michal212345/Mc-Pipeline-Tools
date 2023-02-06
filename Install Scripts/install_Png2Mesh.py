@@ -11,7 +11,6 @@ from PySide2.QtGui import *
 
 # TO DO
 
-# * Optimize mesh
 # * Rewrite the wholething
 # * Finish region selection
 
@@ -106,6 +105,16 @@ def DelAlphaPixels(pathI):
         
         cmds.progressWindow(ep=True)
         cmds.select(d=True)
+
+    def optimizeEdges(Object:str,lowA:int,HighA:int):
+        cmds.selectMode(object=True)
+        cmds.polyListComponentConversion(Object,te=True)
+        cmds.polySelectConstraint( m=3, t=0x8000, a=True, ab=(lowA, HighA) )
+        HardEdges = cmds.ls(sl=True)
+        cmds.polySelectConstraint(m=0, a=False)
+        cmds.select(HardEdges)
+        mel.eval("GrowLoopPolygonSelectionRegion;SelectEdgeLoopSp;InvertSelection;")
+        cmds.polyDelEdge(cmds.ls(sl=True),cv=True)
 
     def CreatePlane(pathI):
 
@@ -221,6 +230,17 @@ def DelAlphaPixels(pathI):
             print("PNG2Mesh: Error in extrude.")
             return None
 
+    if cmds.checkBox("OptimizeMesh",q=True,v=True):
+        if type(Mesh) == list:
+            for i in Mesh:
+                cmds.select(MeshName)  
+                optimizeEdges(i,45,91)
+        elif type(Mesh) == str:
+            optimizeEdges(Mesh,45,91)
+        else:
+            print("PNG2Mesh: Error in Optimize Mesh.")
+            return None
+
         #Handle Bevel if there's one or multiple meshes       
         if cmds.checkBox("BevelMesh",q=True,v=True):
             if type(Mesh) == list:
@@ -257,14 +277,6 @@ def DelAlphaPixels(pathI):
         cmds.rename(Mesh[0],MeshName)
     except:
         print("PNG2Mesh: Couldent rename mesh back to original name.")
-
-    if cmds.checkBox("OptimizeMesh",q=True,v=True):
-        #I didnt want to spend to long on optimization so i used a maya method.    
-        mel.eval("ReducePolygon;")
-        mel.eval("PolygonSoftenHarden;")
-        if cmds.checkBox("DelHistory",q=True,v=True):
-            cmds.select(MeshName)
-            mel.eval("DeleteHistory;")
 
     mel.eval("flushUndo;")
     cmds.select(d=True)
