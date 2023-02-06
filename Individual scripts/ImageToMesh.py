@@ -105,7 +105,7 @@ def DelAlphaPixels(pathI):
 
     def optimizeEdges(Object:str,lowA:int,HighA:int):
         cmds.selectMode(object=True)
-        cmds.polyListComponentConversion(Object,te=True)
+        cmds.select(cmds.polyListComponentConversion(Object,te=True))
         cmds.polySelectConstraint( m=3, t=0x8000, a=True, ab=(lowA, HighA) )
         HardEdges = cmds.ls(sl=True)
         cmds.polySelectConstraint(m=0, a=False)
