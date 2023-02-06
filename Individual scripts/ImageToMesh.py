@@ -227,18 +227,19 @@ def DelAlphaPixels(pathI):
             print("PNG2Mesh: Error in extrude.")
             return None
 
-    if cmds.checkBox("OptimizeMesh",q=True,v=True):
-        if type(Mesh) == list:
-            for i in Mesh:
-                cmds.select(MeshName)  
-                optimizeEdges(i,45,91)
-        elif type(Mesh) == str:
-            optimizeEdges(Mesh,45,91)
-        else:
-            print("PNG2Mesh: Error in Optimize Mesh.")
-            return None
-
-
+        try:
+            if cmds.checkBox("OptimizeMesh",q=True,v=True):
+                if type(Mesh) == list:
+                    for i in Mesh:
+                        cmds.select(MeshName)  
+                        optimizeEdges(i,45,91)
+                elif type(Mesh) == str:
+                    optimizeEdges(Mesh,45,91)
+                else:
+                    print("PNG2Mesh: Error in Optimize Mesh.")
+                    return None
+        except:
+            print("Optimized Skipped")
         #Handle Bevel if there's one or multiple meshes       
         if cmds.checkBox("BevelMesh",q=True,v=True):
             if type(Mesh) == list:

@@ -7,7 +7,6 @@ import maya.mel as mel
 from PySide2.QtCore import *
 from PySide2.QtGui import * 
 
-
 ###
 
 # TO DO
@@ -109,7 +108,7 @@ def DelAlphaPixels(pathI):
 
     def optimizeEdges(Object:str,lowA:int,HighA:int):
         cmds.selectMode(object=True)
-        cmds.polyListComponentConversion(Object,te=True)
+        cmds.select(cmds.polyListComponentConversion(Object,te=True))
         cmds.polySelectConstraint( m=3, t=0x8000, a=True, ab=(lowA, HighA) )
         HardEdges = cmds.ls(sl=True)
         cmds.polySelectConstraint(m=0, a=False)
@@ -231,17 +230,19 @@ def DelAlphaPixels(pathI):
             print("PNG2Mesh: Error in extrude.")
             return None
 
-    if cmds.checkBox("OptimizeMesh",q=True,v=True):
-        if type(Mesh) == list:
-            for i in Mesh:
-                cmds.select(MeshName)  
-                optimizeEdges(i,45,91)
-        elif type(Mesh) == str:
-            optimizeEdges(Mesh,45,91)
-        else:
-            print("PNG2Mesh: Error in Optimize Mesh.")
-            return None
-
+        try:
+            if cmds.checkBox("OptimizeMesh",q=True,v=True):
+                if type(Mesh) == list:
+                    for i in Mesh:
+                        cmds.select(MeshName)  
+                        optimizeEdges(i,45,91)
+                elif type(Mesh) == str:
+                    optimizeEdges(Mesh,45,91)
+                else:
+                    print("PNG2Mesh: Error in Optimize Mesh.")
+                    return None
+        except:
+            print("Optimized Skipped")
         #Handle Bevel if there's one or multiple meshes       
         if cmds.checkBox("BevelMesh",q=True,v=True):
             if type(Mesh) == list:
@@ -461,10 +462,10 @@ def createWindow():
 
     addFrameColumnLayout("ExtraFeatures","Extra Features",True,False)
     cmds.gridLayout( numberOfColumns=2, cellWidthHeight=(300, 20) )
-    addCheckbox("BevelMesh","Bevel Mesh",value=False,cc="blockCkeckBoxUI(['BevelMesh'],'OptimizeMesh',reverse=True);blockCkeckBoxUI(['OptimizeMesh','BevelMesh',],'RecEdge')")
+    addCheckbox("BevelMesh","Bevel Mesh",value=False,cc="blockCkeckBoxUI(['BevelMesh',],'RecEdge')")
     addCheckbox("DelHistory","Delete History",value=True)
-    addCheckbox("OptimizeMesh","Optimize Mesh",value=False,editable=False,cc="blockCkeckBoxUI(['OptimizeMesh','BevelMesh',],'RecEdge')")
-    addCheckbox("RecEdge","Reconnect Vertex",value=False,cc="blockCkeckBoxUI(['RecEdge'],'BevelMesh');blockCkeckBoxUI(['RecEdge'],'OptimizeMesh')")
+    addCheckbox("OptimizeMesh","Optimize Mesh",value=True)
+    addCheckbox("RecEdge","Reconnect Vertex",value=False,cc="blockCkeckBoxUI(['RecEdge'],'BevelMesh')")
     parentToLayout()
     parentToLayout()
     parentToLayout()
