@@ -238,6 +238,7 @@ def DelAlphaPixels(pathI):
             print("PNG2Mesh: Error in Optimize Mesh.")
             return None
 
+
         #Handle Bevel if there's one or multiple meshes       
         if cmds.checkBox("BevelMesh",q=True,v=True):
             if type(Mesh) == list:
