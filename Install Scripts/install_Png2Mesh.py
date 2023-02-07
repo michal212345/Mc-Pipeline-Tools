@@ -124,7 +124,6 @@ def DelAlphaPixels(pathI):
         global Image
         Resolution = Image.GetResolution()
 
-        print(Resolution)
         mel.eval("polyPlane -w 16 -h 16 -sx "+ str(Resolution[0]) + " -sy " + str(Resolution[1]) + " -ax 0 1 0 -cuv 2 -ch 1;")
         renamed = cmds.rename(cmds.ls(selection=True),"ExtrudedMesh#")
 
@@ -177,7 +176,7 @@ def DelAlphaPixels(pathI):
     try:
         cmds.polyDelFacet(toDel)
     except:
-        print("No faces to delete.")
+        cmds.warning("No faces to delete.")
     cmds.select(Mesh)
     mel.eval("ConvertSelectionToEdgePerimeter;")
 
@@ -214,7 +213,7 @@ def DelAlphaPixels(pathI):
         try:
             Mesh = cmds.polySeparate(Mesh)
         except:
-            print("PNG2Mesh: Cant Seperate one mesh, Skipping.")
+            cmds.warning("PNG2Mesh: Cant Seperate one mesh, Skipping.")
         finally:
             Mesh = cmds.filterExpand(Mesh,sm=12)
 
@@ -227,7 +226,7 @@ def DelAlphaPixels(pathI):
         elif type(Mesh) == str:
             cmds.polyExtrudeFacet( Mesh, kft=True, ltz=float(cmds.floatSliderGrp("ESize",q=True,v=True)) )
         else:
-            print("PNG2Mesh: Error in extrude.")
+            cmds.warning("PNG2Mesh: Error in extrude.")
             return None
 
         try:
@@ -239,10 +238,10 @@ def DelAlphaPixels(pathI):
                 elif type(Mesh) == str:
                     optimizeEdges(Mesh,45,91)
                 else:
-                    print("PNG2Mesh: Error in Optimize Mesh.")
+                    cmds.warning("PNG2Mesh: Error in Optimize Mesh.")
                     return None
         except:
-            print("Optimized Skipped")
+            cmds.warning("Optimized Skipped")
         #Handle Bevel if there's one or multiple meshes       
         if cmds.checkBox("BevelMesh",q=True,v=True):
             if type(Mesh) == list:
@@ -254,7 +253,7 @@ def DelAlphaPixels(pathI):
                 cmds.polyBevel3(Mesh,o=0.1,sg=2,fn=True,ws=True)
                 mel.eval("PolygonSoftenEdge;")
             else:
-                print("PNG2Mesh: Error in bevel.")
+                cmds.warning("PNG2Mesh: Error in bevel.")
                 return None
 
 
@@ -278,7 +277,7 @@ def DelAlphaPixels(pathI):
     try:
         cmds.rename(Mesh[0],MeshName)
     except:
-        print("PNG2Mesh: Couldent rename mesh back to original name.")
+        cmds.warning("PNG2Mesh: Couldent rename mesh back to original name.")
 
     mel.eval("flushUndo;")
     cmds.select(d=True)
@@ -298,7 +297,6 @@ def Ext_start():
         global Image
         Image = ImageData(i)
         resolution = Image.GetResolution()
-        print(resolution)
 
         if resolution[0] == resolution[1] and not resolution[0] == 0:
             DelAlphaPixels(i)
@@ -511,6 +509,7 @@ def blockCkeckBoxUI(FromIdf:list,toBlockIdf,reverse=False):
 if __name__=="__main__":  
     deleteIfOpen()
     createWindow()
+
 '''
 
 
