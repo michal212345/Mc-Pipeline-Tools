@@ -50,6 +50,7 @@ def ResDirection(RX:float,RY:float,RZ:float) -> str:
     else:
         cmds.error("couldn't resolve direction." + f" Direction: {RX}, {RY}, {RZ}")
 
+
 def startProjection(Object:str):
     
     if type(Object) == list:
