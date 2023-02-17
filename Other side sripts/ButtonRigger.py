@@ -4,10 +4,9 @@ import maya.mel as mel
 def ConstraintLocator(face):
     locator = cmds.spaceLocator()
     cmds.select(face,locator)
-    mel.eval("PointOnPolyConstraint;")
+    mel.eval('doCreatePointOnPolyConstraintArgList 2 {   "0" ,"0" ,"0" ,"1" ,"" ,"1" ,"0" ,"0" ,"0" ,"0" };')
 
 selection = cmds.ls(sl=True,fl=True)
-print(selection)
 
 if len(selection) > 1:
     for i in selection:

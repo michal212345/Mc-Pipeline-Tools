@@ -27,8 +27,9 @@ def uvfix(faces):
 	cmds.pause(seconds=0.5)
 	cmds.progressWindow(ep=True)
 
-if len(cmds.ls(sl=True)) == 0:
-	cmds.error("No seleciton was made.")
-else:
-	for i in cmds.ls(sl=True):
-		uvfix(i)
+if __name__ == "__main__":
+	if len(cmds.ls(sl=True)) == 0:
+		cmds.error("No seleciton was made.")
+	else:
+		for i in cmds.ls(sl=True):
+			uvfix(i)

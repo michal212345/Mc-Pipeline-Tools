@@ -12,5 +12,9 @@ def optimizeEdges(Object:str,lowA:int,HighA:int):
     cmds.polyDelEdge(cmds.ls(sl=True),cv=True)
 
 if __name__ == "__main__":
-    for i in cmds.ls(sl=True):
-        optimizeEdges(i,45,91)
+    if not len(n:=cmds.ls(sl=True)):
+        for i in n:
+            try:
+                optimizeEdges(i,45,91)
+            except:
+                cmds.warning(f"Failed to optimize {i}, Skipping.")
