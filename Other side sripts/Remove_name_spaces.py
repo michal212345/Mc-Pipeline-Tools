@@ -15,5 +15,7 @@ def Clearnamespace():
 
     for Name in Namespace:
         mel.eval('namespace -mergeNamespaceWithRoot -removeNamespace ' + Name + ';')
-
-Clearnamespace()
+try:
+    Clearnamespace()
+except:
+    cmds.error("No names spaces that can be removed.")

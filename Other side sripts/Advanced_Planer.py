@@ -82,7 +82,7 @@ def startProjection(Object:str):
         cmds.setAttr(Projection[0]+".projectionHeight",16)
 
 if __name__ == "__main__":
-    if len(cmds.ls(sl=True)) == 0:
+    if len(n:=cmds.ls(sl=True)) == 0:
         cmds.error("No selection.")
     else:
-        startProjection(cmds.ls(sl=True))
+        startProjection(n)
