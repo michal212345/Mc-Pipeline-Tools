@@ -48,7 +48,8 @@ def ResDirection(RX:float,RY:float,RZ:float) -> str:
     elif RZ == 1:
         return "z"
     else:
-        cmds.error("couldn't resolve direction." + f" Direction: {RX}, {RY}, {RZ}")
+        cmds.warning("couldn't resolve direction, Attempting to round up." + f" Direction: {RX}, {RY}, {RZ}")
+        return ResDirection(round(RX),round(RY),round(RZ))
 
 
 def startProjection(Object:str):
