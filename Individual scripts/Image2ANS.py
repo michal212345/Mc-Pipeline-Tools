@@ -68,14 +68,20 @@ def compute_normal_map(gradient_x:np.ndarray, gradient_y:np.ndarray, intensity=1
 
     max_value = max_x
 
-    if max_y > max_x:
+    if max_y >= max_x:
         max_value = max_y
+
+    if max_value == 0:
+        max_value = 1
 
     normal_map = np.zeros((height, width, 3), dtype=np.float32)
 
-    intensity = 1 / intensity
+    intensity = max(intensity, 0.0001)
 
-    strength = max_value / (max_value * intensity)
+    try:
+        strength = max_value / (max_value * intensity)
+    except ZeroDivisionError:
+        strength = 1
 
     normal_map[..., 0] = gradient_x / max_value
     normal_map[..., 1] = gradient_y / max_value
@@ -92,17 +98,16 @@ def compute_normal_map(gradient_x:np.ndarray, gradient_y:np.ndarray, intensity=1
 
     return normal_map
 
-@memorize
 def normalized(a) -> float: 
+    if np.sum(a*a) == 0:
+        return a
     factor = 1.0/math.sqrt(np.sum(a*a)) # normalize
     return a*factor
 
 def my_gauss(im:np.ndarray):
-    return ndimage.uniform_filter(im.astype(float),size=20)
+    return ndimage.uniform_filter(im.astype(float), size=20)
 
-def shadow(im:np.ndarray):
-    
-    shadowStrength = .5
+def shadow(im:np.ndarray,shadowStrength = .5):
     
     im1 = im.astype(float)
     im0 = im1.copy()
@@ -126,35 +131,11 @@ def shadow(im:np.ndarray):
 
     shadow=im00*2.0+im000-im1*2.0-im0 
     shadow=normalized(shadow)
-    mean = np.mean(shadow)
-    rmse = np.sqrt(np.mean((shadow-mean)**2))*(1/shadowStrength)
+    mean = round(np.mean(shadow),5)
+    rmse = round(np.sqrt(np.mean((shadow-mean)**2))*(min(1/shadowStrength,1)),5)
     shadow = np.clip(shadow, mean-rmse*2.0,mean+rmse*0.5)
 
     return shadow
-
-def flipgreen(path:str):
-    try:
-        with Image.open(path) as img:
-            red, green, blue, alpha= img.split()
-            image = Image.merge("RGB",(red,ImageOps.invert(green),blue))
-            image.save(path)
-    except ValueError:
-        with Image.open(path) as img:
-            red, green, blue = img.split()
-            image = Image.merge("RGB",(red,ImageOps.invert(green),blue))
-            image.save(path)
-
-def CleanupAO(path:str):
-    try:
-        with Image.open(path) as img:
-            red, green, blue, alpha= img.split()
-            NewG = ImageOps.colorize(green,black=(100, 100, 100),white=(255,255,255),blackpoint=0,whitepoint=180)
-            NewG.save(path)
-    except ValueError:
-        with Image.open(path) as img:
-            red, green, blue = img.split()
-            NewG = ImageOps.colorize(green,black=(100, 100, 100),white=(255,255,255),blackpoint=0,whitepoint=180)
-            NewG.save(path)
 
 def adjustPath(Org_Path:str,addto:str):
 
@@ -175,14 +156,31 @@ def adjustPath(Org_Path:str,addto:str):
 
     return newpath
 
-def Convert(input_file, smoothness = 5, intensity = 5, dAO = True, doS = True, doN = True):
+def readPNG(path:str) -> np.ndarray:
+    with Image.open(path,"r") as img:
+        return np.array(img.convert("RGB"))/255
+
+def NumpyToPillow(im:np.ndarray) -> Image:
+    return Image.fromarray(np.uint8(im*255))
+
+def CleanupAO(path:str):
+    with Image.open(path) as img:
+        red, green, blue, alpha= img.split()
+        NewG = ImageOps.colorize(green,black=(100, 100, 100),white=(255,255,255),blackpoint=0,whitepoint=180)
+        NewG.save(path, bitdepth=16)
+
+def Convert(input_file:str, smoothness = 5, intensity = 5, dAO = True, doS = True, doN = True):
+    """Converts the given image to a normal map and ambient occlusion map."""
+
+    if input_file == None or input_file == "" or not input_file.endswith(".png"):
+        raise ValueError("Invalid input file.")
+
     print('Doing: ',str(input_file))
-    
-    #maya.standalone.initialize(name='python')
+
     with Image.open(input_file,"r") as img:
         
         if doS == True:
-            saturation = ImageEnhance.Color(img)
+            saturation = ImageEnhance.Color(img.convert("RGB"))
 
             saturation = saturation.enhance(0)
             brightnesscorect = ImageEnhance.Brightness(saturation)
@@ -192,14 +190,21 @@ def Convert(input_file, smoothness = 5, intensity = 5, dAO = True, doS = True, d
         
         size = img.size
         sizen = list(size)
+        
         if sizen[0] <= 2048 and sizen[1] <= 2048:
+
+            print("Image is too small enough.")
+
             while sizen[0] <= 2047 and sizen[1] <= 2047:
                 sizen[0] = sizen[0] * 2
                 sizen[1] = sizen[1] * 2
-            
+
+            print("Resizing to: ",sizen)
+
             resized = img.resize((sizen[0],sizen[1]),Image.Resampling.NEAREST)
             temp_file = adjustPath(input_file,"Resized")
-            resized.save(temp_file)
+            resized.convert("RGB").save(temp_file)
+            
             oldpath = input_file
             input_file = temp_file
             resized = True
@@ -208,7 +213,7 @@ def Convert(input_file, smoothness = 5, intensity = 5, dAO = True, doS = True, d
             input_file = input_file
 
     if doN == True:
-        im = pyplot.imread(input_file)
+        im = readPNG(input_file)
 
         if im.ndim == 3:
             im_grey = np.zeros((im.shape[0],im.shape[1])).astype(float)
@@ -221,15 +226,14 @@ def Convert(input_file, smoothness = 5, intensity = 5, dAO = True, doS = True, d
 
         normal_map = compute_normal_map(sobel_x, sobel_y, intensity)
 
-        pyplot.imsave(adjustPath(oldpath,"Normal"),normal_map)
+        red, green, blue = NumpyToPillow(normal_map).split()
+        Image.merge("RGB",(red,ImageOps.invert(green),blue)).save(adjustPath(oldpath,"Normal"), bitdepth=16)
 
-        flipgreen(adjustPath(oldpath,"Normal"))
         print("Normal Done.")
 
     if dAO == True:
         im_shadow = shadow(im)
-
-        pyplot.imsave(adjustPath(oldpath,"AO"),im_shadow)
+        pyplot.imsave(adjustPath(oldpath,"AO"),im_shadow,cmap="gray")
         CleanupAO(adjustPath(oldpath,"AO"))
         print("Ambient Occlusion Done.")
 
